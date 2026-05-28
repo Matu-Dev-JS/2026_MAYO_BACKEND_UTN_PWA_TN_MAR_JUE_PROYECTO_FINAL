@@ -86,6 +86,13 @@ class AuthController {
     }
 
 
+    /**
+     * Controlador de express para la verificacion del mail
+     * param {Object} req - Objeto de request de express
+     * param {Object} res - Objeto de response de express
+     * 
+     * Esperamos recibir un query param con el token llamado verification_token
+     */
     async verifyEmail(req, res) {
         try {
             const { verification_token } = req.query;

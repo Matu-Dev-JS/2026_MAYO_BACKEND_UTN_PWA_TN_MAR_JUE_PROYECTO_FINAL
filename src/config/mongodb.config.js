@@ -4,7 +4,9 @@ import ENVIRONMENT from "./environment.config.js"
 const connectMongoDB = async ( ) => {
     try{
         await mongoose.connect(
-            ENVIRONMENT.MONGO_DB_CONNECTION_STRING + '/' + ENVIRONMENT.MONGO_DB_NAME
+            ENVIRONMENT.MONGO_DB_CONNECTION_STRING + '/' + ENVIRONMENT.MONGO_DB_NAME, {
+                connectTimeoutMS: 30000
+            }
         )
         console.log("La conexion con MongoDB funciona")
     }
