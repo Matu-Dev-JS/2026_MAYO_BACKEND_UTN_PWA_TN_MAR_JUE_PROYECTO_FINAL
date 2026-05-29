@@ -56,85 +56,38 @@ app.use('/api/auth', authRouter);
 app.use('/api/workspace', workspaceRouter)
 
 /* 
-Ruta: /api/workspace
-
-
-    controlador: workspaceController
-        
-        POST '/' post() Debe estar con el authMiddleware (IMPORTANTE)
-            Validar nombre y descripcion (opcional)
-            Crear un espacio de trabajo
-            Crear una membresia de role tipo 'dueño' a nombre del id del cliente consultante.
-            
-            body: {
-                nombre,
-                descripcion
-            }
-
-        GET '/' getAllByUser() Debe estar con el authMiddleware (IMPORTANTE)
-            Buscar todos los espacios de trabajo de los que el cliente consultante es miembro 
-            Responder con la lista de espacios de trabajo
-
-        DELETE '/:workspace_id' deleteById() Debe estar con el authMiddleware
-            Validar que el espacio de trabajo exista => 404
-            Validar que el usuario consultante sea 'dueño' de dicho espacio de trabajo => 403 Forbidden
-            Eliminar (Soft o Hard) el espacio de trabajo
-
-        PUT '/:workspace_id' updateById() Debe estar con el authMiddleware
-            body: {
-                nombre (opcional),
-                descripcion (opcional)
-            }
-            Validar que el espacio de trabajo exista => 404
-            Validar que el usuario consultante sea 'dueño' o 'admin' de dicho espacio de trabajo => 403 Forbidden
-            Actualizar los campos correspondientes.
-
-    RECOMENDACION:
-        Como se repite 
-            Validar que el espacio de trabajo exista
-            Validar que el cliente consultante sea miembro del espacio de trabajo
-        Vendria muy bien usar un middleware que se llame workspaceMiddleware
-        Haria:
-            - Validar que el espacio de trabajo exista
-            - Validar que el cliente consultante sea miembro del espacio de trabajo
-            - Guardar en la request la info de:
-                workspace
-                member
+TAREA PARA 2/6
+    POST /api/auth/reset-password-request
+        body: {
+            email: 'email de usuario solicitante'
+        }
+        Que hace?
+            -Verifica que el usuario exista
+            -Genera un jwt con el id o email del usuario como payload (carga, contenido)
+            -Genera un mail y lo envia a la casilla indicada en el body con un ancla `${ENVIRONMENT.URL_FRONTEND}/reset-password?reset_password_token=${token}`
+    
+    POST /api/auth/reset-password
+        headers: {
+            "Authorization": "bearer {reset_password_token}"
+        },
+        body: {
+            new_password: "pepe_123"
+        }
+        Que hace?
+            -Capturamos de request.headers.authorization el token 
+            -Validamos el token (sino esta o es invalido 401 Unauthorized)
+            -Hasheamos la nueva contraseña que nos dan por body
+            -Con el id o email indicado en el token, buscamos en la DB y actualizamos la password con el nuevo hash (ya que estan le pueden validar el mail, debido a que el proceso requiere que el usuario use su casilla)
+  
+    Recomendacion personal:
+        NO hagan nada de front, prueben todo con postman
+        NO hagan los dos controladores, hagan 1, lo prueban y luego el siguiente
 */
 
 
 
-/* 
-Un endpoint donde el cliente debera enviarnos por header de autorizacion el access token, en caso de estar presente y ser correcto
-Le daremos los datos de la cuenta
-*/
-app.get(
-    '/api/profile', 
-   /*  (request, response, next) => {
-        const random_num = Math.random() 
-        console.log('Numero aleatorion generado:', random_num)
-        if(random_num > 0.5){
-            return response.json({
-                message:"Mala suerte campeon ☠"
-            })
-        }
-        else{
-            next()
-        }
-    }, */
-    authMiddleware,
-    (request, response) => {
-        console.log(
-            'Nombre del cliente:',
-            request.user.nombre
-        )
-        return response.json({
-            ok: true,
-            status: 200,
-            message: "Estas autenticado"
-        })
-    }
-)
+
+
 
 app.listen(PORT, () => {
     console.log(`Servidor corriendo en http://localhost:${PORT}`);
