@@ -101,7 +101,7 @@ class AuthController {
                 throw new ServerError("Falta token de verificación", 400);
             }
             const payload = jwt.verify(verification_token, ENVIRONMENT.JWT_SECRET)
-            const {email} = payload
+            const { email } = payload
             const user = await userRepository.getByEmail(email);
 
             if (!user) {
@@ -123,13 +123,13 @@ class AuthController {
         }
         catch (error) {
             console.log(error)
-            if( 
-                error instanceof jwt.JsonWebTokenError 
-                || 
-                error instanceof jwt.NotBeforeError 
-                || 
-                error instanceof jwt.TokenExpiredError 
-            ){
+            if (
+                error instanceof jwt.JsonWebTokenError
+                ||
+                error instanceof jwt.NotBeforeError
+                ||
+                error instanceof jwt.TokenExpiredError
+            ) {
                 return res.status(401).json(
                     {
                         message: "Token invalido",
@@ -159,9 +159,9 @@ class AuthController {
         }
     }
 
-    async login(request, response){
-        try{
-            const {email, password} = request.body
+    async login(request, response) {
+        try {
+            const { email, password } = request.body
 
             if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
                 throw new ServerError("Email inválido", 400)
@@ -173,17 +173,17 @@ class AuthController {
 
             const user_found = await userRepository.getByEmail(email)
 
-            if(!user_found){
+            if (!user_found) {
                 throw new ServerError("Usuario no registrado", 404)
             }
 
-            if(!user_found.email_verificado){
+            if (!user_found.email_verificado) {
                 throw new ServerError("Usuario con verificacion de mail pendiente", 401)
             }
 
             const is_same_password = await bcrypt.compare(password, user_found.password)
 
-            if(!is_same_password){
+            if (!is_same_password) {
                 throw new ServerError("Credenciales invalidas", 401)
             }
 
@@ -202,7 +202,7 @@ class AuthController {
             )
 
             return response.status(200).json({
-                ok:true,
+                ok: true,
                 status: 200,
                 message: 'Usuario autentificado exitosamente',
                 data: {
@@ -210,7 +210,7 @@ class AuthController {
                 }
             })
         }
-        catch(error){
+        catch (error) {
             if (error instanceof ServerError) {
                 return response.status(error.status).json(
                     {
@@ -227,6 +227,73 @@ class AuthController {
                     ok: false,
                     status: 500
                 });
+            }
+        }
+    }
+
+
+    /* --- 4. SOLICITUD RESTABLECER CONTRASEÑA --- */
+    async resetPasswordRequest(request, response) {
+        try {
+            const { email } = request.body;
+
+            if (!email) {
+                throw new ServerError("El email es obligatorio", 400);
+            }
+
+            const user = await userRepository.getByEmail(email);
+
+            //Esto es una decision de negocio, no quiere decir que siempre deba ser asi, un 404 not found podria estar bien tambien o
+            if (!user) {
+                return response.status(200).json({
+                    ok: true,
+                    status: 200,
+                    message: "En caso de que tengas una cuenta asociada a este correo te enviaremos instrucciones para restablecer tu contraseña"
+                });
+            }
+
+            const secret_key = ENVIRONMENT.JWT_SECRET + user.password;
+
+            const token = jwt.sign(
+                { email: user.email, id: user._id },
+                secret_key,
+                { expiresIn: '15m' } //El token expiran en 15m
+            );
+
+            const reset_link = `${ENVIRONMENT.URL_FRONTEND}/reset-password?token=${token}`;
+
+            await mailer_transport.sendMail({
+                from: 'Tu App <no-reply@tuapp.com>',
+                to: user.email,
+                subject: 'Restablece tu contraseña',
+                html: `
+                    <h1>Restablecimiento de Contraseña</h1>
+                    <p>Has solicitado restablecer tu contraseña. Haz clic en el enlace de abajo para continuar:</p>
+                    <a href="${reset_link}">Restablecer mi contraseña</a>
+                    <p>Este enlace expirará en 15 minutos. Si tú no solicitaste esto, puedes ignorar este correo sin problemas.</p>
+                `
+            });
+
+            //RETURN EXITO REAL
+            return response.status(200).json({
+                ok: true,
+                status: 200,
+                message: "En caso de que tengas una cuenta asociada a este correo te enviaremos instrucciones para restablecer tu contraseña"
+            });
+        } catch (error) {
+            if (error instanceof ServerError) {
+                return response.status(error.status).json({
+                    message: error.message,
+                    ok: false,
+                    status: error.status
+                });
+            } else {
+                console.error("Error critico en resetPasswordRequest: ", error);
+                return response.status(500).json({
+                    message: "Error interno del servidor",
+                    ok: false,
+                    status: 500
+                })
             }
         }
     }
