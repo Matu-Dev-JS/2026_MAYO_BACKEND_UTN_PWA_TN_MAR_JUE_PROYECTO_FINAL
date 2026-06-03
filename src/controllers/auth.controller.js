@@ -297,6 +297,77 @@ class AuthController {
             }
         }
     }
+
+    async resetPasswordConfirm(request, response) {
+        try {
+            const auth_header = request.headers.authorization
+
+            if(!auth_header){
+                throw new ServerError('Falta header de autentificacion', 401)
+            }
+
+            const reset_token = auth_header.split(' ')[1]
+
+            if(!reset_token){
+                throw new ServerError('Falta el token de autorizacion', 401)
+            }
+
+            const {email} = jwt.decode(reset_token)
+            const user = await userRepository.getByEmail(email)
+            if (!user) {
+                throw new ServerError("Usuario no encontrado", 404);
+            }
+            
+
+            const secret_key = ENVIRONMENT.JWT_SECRET + user.password;
+            const decoded = jwt.verify(reset_token, secret_key);
+
+            const { newPassword } = request.body;
+
+            if (!newPassword || newPassword.length < 6) {
+                throw new ServerError("Contraseña invalida", 400);
+            }
+
+            const new_password_hashed = await bcrypt.hash(newPassword, 10);
+            await userRepository.updateById(user._id, { password: new_password_hashed });
+
+            return response.status(200).json({
+                ok: true,
+                status: 200,
+                message: "Contraseña restablecida exitosamente"
+            });
+        } catch (error) {
+            console.log(error)
+            if(error instanceof jwt.TokenExpiredError){
+                return response.status(401).json({
+                    message: 'Token expirado o invalido',
+                    ok: false,
+                    status: 401
+                })
+            }
+            else if(error instanceof jwt.JsonWebTokenError){
+                return response.status(401).json({
+                    message: 'Token invalido',
+                    ok: false,
+                    status: 401
+                })
+            }
+            else if (error instanceof ServerError) {
+                return response.status(error.status).json({
+                    message: error.message,
+                    ok: false,
+                    status: error.status
+                });
+            } else {
+                console.error('Error critico:', error);
+                return response.status(500).json({
+                    message: "Error interno del servidor",
+                    ok: false,
+                    status: 500
+                });
+            }
+        }
+    }
 }
 
 const authController = new AuthController();
