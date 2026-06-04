@@ -12,11 +12,13 @@ class WorkspaceMemberRepository {
     }
 
     /* Desarrollar los metodos */
-    async create(user_id, workspace_id, rol) {
+    async create(user_id, workspace_id, rol, estatus_invitacion, fecha_expiracion_invitacion) {
         return await WorkspaceMember.create({
             fk_workspace_id: workspace_id,
             fk_user_id: user_id,
-            rol: rol
+            rol: rol,
+            estatus_invitacion,
+            fecha_expiracion_invitacion
         })
     }
 
@@ -80,6 +82,14 @@ class WorkspaceMemberRepository {
                 workspace_descripcion: membership.fk_workspace_id.descripcion
             }));
     }
+
+     async getMemberByWorkspaceAndUserId(workspace_id, user_id) {
+        return await WorkspaceMember.findOne({
+            fk_workspace_id: workspace_id,
+            fk_user_id: user_id
+        });
+    }
+
 
 }
 
