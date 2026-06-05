@@ -54,9 +54,41 @@ class MemberWorkspaceService {
         const accept_url = `${ENVIRONMENT.URL_FRONTEND}/api/workspace/${workspace_id}/members/${MEMBER_INVITATION_STATUS.ACCEPTED}?invitation_token=${invitation_token}`;
         const reject_url = `${ENVIRONMENT.URL_FRONTEND}/api/workspace/${workspace_id}/members/${MEMBER_INVITATION_STATUS.REJECTED}?invitation_token=${invitation_token}`;
 
-       
+
 
         await mailService.sendInvitationMemberEmail(userToInvite.email, accept_url, reject_url, role)
+    }
+
+    async memberDesicion(invitation_token, decision) {
+        const decoded = jwt.verify(invitation_token, ENVIRONMENT.JWT_SECRET);
+
+        const member_created = await workspaceMemberRepository.getById(decoded.member_id);
+        if (!member_created) {
+            throw new ServerError("Invitación no encontrada o expirada", 404);
+        }
+
+        if (member_created.estatus_invitacion !== MEMBER_INVITATION_STATUS.PENDING) {
+            throw new ServerError("Esta invitación ya fue procesada anteriormente", 400);
+        }
+
+        if (member_created.fecha_expiracion_invitacion < new Date()) {
+            throw new ServerError("Esta invitación ha expirado", 400);
+        }
+
+        if (decision === MEMBER_INVITATION_STATUS.ACCEPTED) {
+            await workspaceMemberRepository.updateById(
+                member_created._id,
+                { estatus_invitacion: MEMBER_INVITATION_STATUS.ACCEPTED }
+            );
+        }
+
+        if (decision === MEMBER_INVITATION_STATUS.REJECTED) {
+            await workspaceMemberRepository.updateById(
+                member_created._id,
+                { estatus_invitacion: MEMBER_INVITATION_STATUS.REJECTED }
+            );
+
+        }
     }
 
     async verifyAlreadyMember(workspace_id, user_id) {
@@ -105,7 +137,7 @@ class MemberWorkspaceService {
         return expirationDate
     }
 
-    
+
 
 }
 

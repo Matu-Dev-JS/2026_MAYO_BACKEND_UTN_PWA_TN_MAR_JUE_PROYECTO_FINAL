@@ -42,6 +42,7 @@ RECOMENDACION:
     )
 */
 import cors from 'cors'
+import errorHandlerMiddleware from "./middlewares/error.middleware.js";
 
 const app = express();
 const PORT = ENVIRONMENT.PORT;
@@ -117,8 +118,9 @@ TAREA 4/6:
 
 
 
-
-
+//Siempre debe estar al final
+//Esto es debido a que este middleware se ejecutara entre el controller y la response del servidor
+app.use(errorHandlerMiddleware)
 
 app.listen(PORT, () => {
     console.log(`Servidor corriendo en http://localhost:${PORT}`);
